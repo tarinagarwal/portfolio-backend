@@ -23,7 +23,7 @@ const fetchGallery = async (req, res) => {
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Something went wrong while fetching gallery items" });
+      .json({ message: `Something went wrong while fetching gallery items ${error.message}` });
   }
 };
 
@@ -63,4 +63,48 @@ const addGallery = async (req, res) => {
   }
 };
 
-export { fetchGallery, addGallery };
+const deleteGallery = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await withClient(async (client) => {
+      const result = await client.query("DELETE FROM gallery WHERE id = $1", [id]);
+      
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: "Gallery item not found" });
+      }
+    });
+
+    res.status(200).json({ message: "Deleted gallery item successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: `Something went wrong while deleting gallery item: ${error.message}` });
+  }
+};
+
+const updateGallery = async (req, res) => {
+  const { id } = req.params;
+  const { imgUrl, location, eventName, projectName } = req.body;
+
+  if (!imgUrl || !location || !eventName || !projectName) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    await withClient(async (client) => {
+      const result = await client.query(
+        "UPDATE gallery SET imgUrl = $1, location = $2, eventName = $3, projectName = $4 WHERE id = $5",
+        [imgUrl, location, eventName, projectName, id]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: "Gallery item not found" });
+      }
+    });
+
+    res.status(200).json({ message: "Updated gallery item successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: `Something went wrong while updating gallery item: ${error.message}` });
+  }
+};
+
+export { fetchGallery, addGallery, deleteGallery, updateGallery };

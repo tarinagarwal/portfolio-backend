@@ -1,3 +1,5 @@
+
+
 import pool from "../config/db.js";
 
 const withClient = async (callback) => {
@@ -61,4 +63,49 @@ const addBlog = async (req, res) => {
   }
 };
 
-export { fetchBlogs, addBlog };
+const deleteBlog = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await withClient(async (client) => {
+      const result = await client.query("DELETE FROM blogs WHERE id = $1", [id]);
+      
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: "Blog not found" });
+      }
+    });
+
+    res.status(200).json({ message: "Deleted blog successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: `Something went wrong while deleting blog: ${error.message}` });
+  }
+};
+
+const updateBlog = async (req, res) => {
+  const { id } = req.params;
+  const { title, author, date, img, body, description } = req.body;
+
+  if (!title || !author || !date || !img || !body || !description) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    await withClient(async (client) => {
+      const result = await client.query(
+        "UPDATE blogs SET title = $1, author = $2, date = $3, img = $4, body = $5, description = $6 WHERE id = $7",
+        [title, author, date, img, body, description, id]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: "Blog not found" });
+      }
+    });
+
+    res.status(200).json({ message: "Updated blog successfully!" });
+  } catch (error) {
+    res.status(500).json({ message: `Something went wrong while updating blog: ${error.message}` });
+  }
+};
+
+export { fetchBlogs, addBlog, deleteBlog, updateBlog };
+
